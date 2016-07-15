@@ -334,8 +334,6 @@ Function Read-RegistryPolicies
 
     foreach ($entry in $Entries)
     {
-        Write-Verbose "$entry"
-
         #if (Test-Path -Path $entry)
         if (IsRegistryKey -Path $entry -Hive $Hive)
         {
@@ -450,8 +448,6 @@ Function Create-RegistrySettingsEntry
         [GPRegistryPolicy]
         $RegistryPolicy
     )
-
-    Write-Host "Creating key $($RP.KeyName)"
         
     # Entry format: [key;value;type;size;data]
     [Byte[]] $Entry = @()
