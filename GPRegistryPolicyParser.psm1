@@ -1,4 +1,4 @@
-﻿﻿###########################################################
+﻿###########################################################
 #
 #  Group Policy - Registry Policy parser module
 #
@@ -15,7 +15,6 @@ data LocalizedData
     InvalidFormatBracket = File '{0}' has an invalid format. A [ or ] was expected at location {1}.
     InvalidFormatSemicolon = File '{0}' has an invalid format. A ; was expected at location {1}.
     OnlyCreatingKey = Some values are null. Only the registry key is created.
-    Progress = Progress: {0,8:p}
     InvalidPath = Path {0} doesn't point to an existing registry key/property.
     InternalError = Internal error while creating a registry entry for {0}
     InvalidIntegerSize = Invalid size for an integer. Must be less than or equal to 8.
@@ -287,8 +286,6 @@ Function Parse-PolFile
         $entry = New-GPRegistryPolicy $keyName $valueName $valueType $valueLength $value
 
         $RegistryPolicies += $entry
-
-        Write-Verbose ($LocalizedData.Progress -f ($index / $policyContents.Length))
     }
 
     return $RegistryPolicies
