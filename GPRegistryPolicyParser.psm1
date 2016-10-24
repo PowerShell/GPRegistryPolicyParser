@@ -1,4 +1,4 @@
-﻿###########################################################
+﻿﻿###########################################################
 #
 #  Group Policy - Registry Policy parser module
 #
@@ -631,9 +631,15 @@ Function Get-RegKeyInfo
 
     switch ($RegKey.GetValueKind($ValueName))
     {
-        { @("String", "ExpandString") -contains $_ } {
+        "String"       {
             $Type = $RegKey.GetValueKind($ValueName)
             $Data = $RegKey.GetValue($ValueName)
+            $Size = $Data.Length
+        }
+
+        "ExpandString"       {
+            $Type = $RegKey.GetValueKind($ValueName)
+            $Data = $RegKey.GetValue($ValueName,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
             $Size = $Data.Length
         }
 
