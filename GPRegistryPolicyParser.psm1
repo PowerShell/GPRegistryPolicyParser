@@ -26,6 +26,10 @@ Import-LocalizedData  LocalizedData -filename GPRegistryPolicyParser.Strings.psd
 $script:REGFILE_SIGNATURE = 0x67655250 # PRef
 $script:REGISTRY_FILE_VERSION = 0x00000001 #Initially defined as 1, then incremented each time the file format is changed.
 
+$script:DefaultEntries = @(
+    "Software\Policies"
+)
+
 Enum RegType {
     REG_NONE                       = 0	# No value type
     REG_SZ                         = 1	# Unicode null terminated string
@@ -317,7 +321,7 @@ Function Read-RegistryPolicies
         $Division = "LocalMachine",
 		
         [string[]]
-        $Entries = @("Software\Policies")
+        $Entries = $script:DefaultEntries
     )
 
     [Array] $RegistryPolicies = @()
