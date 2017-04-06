@@ -15,6 +15,7 @@ data LocalizedData
     InvalidFormatBracket = File '{0}' has an invalid format. A [ or ] was expected at location {1}.
     InvalidFormatSemicolon = File '{0}' has an invalid format. A ; was expected at location {1}.
     OnlyCreatingKey = Some values are null. Only the registry key is created.
+    Progress = Progress: {0,8:p}
     InvalidPath = Path {0} doesn't point to an existing registry key/property.
     InternalError = Internal error while creating a registry entry for {0}
     InvalidIntegerSize = Invalid size for an integer. Must be less than or equal to 8.
@@ -26,123 +27,76 @@ Import-LocalizedData  LocalizedData -filename GPRegistryPolicyParser.Strings.psd
 $script:REGFILE_SIGNATURE = 0x67655250 # PRef
 $script:REGISTRY_FILE_VERSION = 0x00000001 #Initially defined as 1, then incremented each time the file format is changed.
 
-$script:DefaultEntries = @(
-    "Software\Policies"
-)
-
-Enum RegType {
-    REG_NONE                       = 0	# No value type
-    REG_SZ                         = 1	# Unicode null terminated string
-    REG_EXPAND_SZ                  = 2	# Unicode null terminated string (with environmental variable references)
-    REG_BINARY                     = 3	# Free form binary
-    REG_DWORD                      = 4	# 32-bit number
-    REG_DWORD_LITTLE_ENDIAN        = 4	# 32-bit number (same as REG_DWORD)
-    REG_DWORD_BIG_ENDIAN           = 5	# 32-bit number
-    REG_LINK                       = 6	# Symbolic link (Unicode)
-    REG_MULTI_SZ                   = 7	# Multiple Unicode strings, delimited by \0, terminated by \0\0
-    REG_RESOURCE_LIST              = 8  # Resource list in resource map
-    REG_FULL_RESOURCE_DESCRIPTOR   = 9  # Resource list in hardware description
-    REG_RESOURCE_REQUIREMENTS_LIST = 10
-    REG_QWORD                      = 11 # 64-bit number
-    REG_QWORD_LITTLE_ENDIAN        = 11 # 64-bit number (same as REG_QWORD)
-}
-
-Class GPRegistryPolicy
+$type = @"
+public enum RegType 
 {
-    [string]  $KeyName
-    [string]  $ValueName
-    [RegType] $ValueType
-    [string]  $ValueLength
-    [object]  $ValueData
+    REG_NONE                       = 0,	// No value type
+    REG_SZ                         = 1,	// Unicode null terminated string
+    REG_EXPAND_SZ                  = 2,	// Unicode null terminated string (with environmental variable references)
+    REG_BINARY                     = 3,	// Free form binary
+    REG_DWORD                      = 4,	// 32-bit number
+    REG_DWORD_LITTLE_ENDIAN        = 4,	// 32-bit number (same as REG_DWORD)
+    REG_DWORD_BIG_ENDIAN           = 5,	// 32-bit number
+    REG_LINK                       = 6,	// Symbolic link (Unicode)
+    REG_MULTI_SZ                   = 7,	// Multiple Unicode strings, delimited by \0, terminated by \0\0
+    REG_RESOURCE_LIST              = 8,  // Resource list in resource map
+    REG_FULL_RESOURCE_DESCRIPTOR   = 9,  // Resource list in hardware description
+    REG_RESOURCE_REQUIREMENTS_LIST = 10,
+    REG_QWORD                      = 11, // 64-bit number
+    REG_QWORD_LITTLE_ENDIAN        = 11, // 64-bit number (same as REG_QWORD)
+}
+"@
 
-    GPRegistryPolicy()
+Add-Type -TypeDefinition $type -Language CSharp -IgnoreWarnings
+
+function GetRegTypeFromString
+{
+    [CmdletBinding()]
+    [OutputType([RegType])]
+    param([string] $Type)
+    $Result = [RegType]::REG_NONE
+
+    switch ($Type)
     {
-        $this.KeyName     = $Null
-        $this.ValueName   = $Null
-        $this.ValueType   = [RegType]::REG_NONE
-        $this.ValueLength = 0
-        $this.ValueData   = $Null
+        "String"       { $Result = [RegType]::REG_SZ }
+        "ExpandString" { $Result = [RegType]::REG_EXPAND_SZ }
+        "Binary"       { $Result = [RegType]::REG_BINARY }
+        "DWord"        { $Result = [RegType]::REG_DWORD }
+        "MultiString"  { $Result = [RegType]::REG_MULTI_SZ }
+        "QWord"        { $Result = [RegType]::REG_QWORD }
+        default        { $Result = [RegType]::REG_NONE }
     }
 
-    GPRegistryPolicy(
-            [string]  $KeyName,
-            [string]  $ValueName,
-            [RegType] $ValueType,
-            [string]  $ValueLength,
-            [object]  $ValueData
-        )
-    {
-        $this.KeyName     = $KeyName
-        $this.ValueName   = $ValueName
-        $this.ValueType   = $ValueType
-        $this.ValueLength = $ValueLength
-        $this.ValueData   = $ValueData
-    }
-
-    [string] GetRegTypeString()
-    {
-        [string] $Result = ""
-
-        switch ($this.ValueType)
-        {
-            ([RegType]::REG_SZ)        { $Result = "String" }
-            ([RegType]::REG_EXPAND_SZ) { $Result = "ExpandString" }
-            ([RegType]::REG_BINARY)    { $Result = "Binary" }
-            ([RegType]::REG_DWORD)     { $Result = "DWord" }
-            ([RegType]::REG_MULTI_SZ)  { $Result = "MultiString" }
-            ([RegType]::REG_QWORD)     { $Result = "QWord" }
-            default                    { $Result = "" }
-        }
-
-        return $Result
-    }
-
-    static [RegType] GetRegTypeFromString( [string] $Type )
-    {
-        $Result = [RegType]::REG_NONE
-
-        switch ($Type)
-        {
-            "String"       { $Result = [RegType]::REG_SZ }
-            "ExpandString" { $Result = [RegType]::REG_EXPAND_SZ }
-            "Binary"       { $Result = [RegType]::REG_BINARY }
-            "DWord"        { $Result = [RegType]::REG_DWORD }
-            "MultiString"  { $Result = [RegType]::REG_MULTI_SZ }
-            "QWord"        { $Result = [RegType]::REG_QWORD }
-            default        { $Result = [RegType]::REG_NONE }
-        }
-
-        return $Result
-    }
+    return $Result
 }
 
 Function New-GPRegistryPolicy
 {
     param (
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [string]
         $keyName,
-        
-        [Parameter(Position=1)]
+
         [string]
         $valueName = $null,
-        
-        [Parameter(Position=2)]
+
         [RegType]
         $valueType = [RegType]::REG_NONE,
-        
-        [Parameter(Position=3)]
+
         [string]
         $valueLength = $null,
-        
-        [Parameter(Position=4)]
+
         [object]
         $valueData = $null
         )
 
-    $Policy = [GPRegistryPolicy]::new($keyName, $valueName, $valueType, $valueLength, $valueData)
-
+    $Policy = New-Object psobject
+    foreach ($key in $PSBoundParameters.keys)
+    {
+        $Policy = $Policy | Add-Member -MemberType NoteProperty -Name $key -Value $PSBoundParameters["$key"] -TypeName "GPRegistryPolicy" -PassThru
+    }
+        
     return $Policy;
 }
 
@@ -171,11 +125,11 @@ Specifies the path to the .pol file.
 .EXAMPLE
 C:\PS> Parse-PolFile -Path "C:\Registry.pol"
 #>
-Function Parse-PolFile
+Function Read-PolFile
 {
     [OutputType([Array])]
     param (
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory)]
         [string]
         $Path
     )
@@ -184,7 +138,7 @@ Function Parse-PolFile
     $index = 0
 
     [string] $policyContents = Get-Content $Path -Raw
-    [byte[]] $policyContentInBytes = Get-Content $Path -Raw -Encoding Byte
+    [byte[]] $policyContentInBytes = [System.Text.Encoding]::ASCII.GetBytes($policyContents)
 
     # 4 bytes are the signature PReg
     $signature = [System.Text.Encoding]::ASCII.GetString($policyContents[0..3])
@@ -232,7 +186,7 @@ Function Parse-PolFile
         # Next DWORD will continue until the ;
         $semicolon = $index + 4 # DWORD Size
         Assert ([System.BitConverter]::ToChar($policyContentInBytes, $semicolon) -eq ';') "Failed to locate the semicolon after value length."
-        $valueLength = Convert-StringToInt -ValueString $policyContentInBytes[$index..($index+3)]
+        $valueLength = [System.BitConverter]::ToInt32($policyContentInBytes, $index)
         $index=$semicolon + 2 # Skip ';'
 
         if ($valueLength -gt 0)
@@ -241,14 +195,14 @@ Function Parse-PolFile
             # REG_SZ: string type (ASCII)
             if($valueType -eq [RegType]::REG_SZ)
             {
-                [string] $value = [System.Text.Encoding]::UNICODE.GetString($policyContents[($index)..($index+$valueLength-3)]) # -3 to exclude the null termination and ']' characters
+                $value = [System.Text.Encoding]::UNICODE.GetString($policyContents[($index)..($index+$valueLength-3)]) # -3 to exclude the null termination and ']' characters
                 $index += $valueLength
             }
 
             # REG_EXPAND_SZ: string, includes %ENVVAR% (expanded by caller) (ASCII)
             if($valueType -eq [RegType]::REG_EXPAND_SZ)
             {
-                [string] $value = [System.Text.Encoding]::UNICODE.GetString($policyContents[($index)..($index+$valueLength-3)]) # -3 to exclude the null termination and ']' characters
+                $value = [System.Text.Encoding]::UNICODE.GetString($policyContents[($index)..($index+$valueLength-3)]) # -3 to exclude the null termination and ']' characters
                 $index += $valueLength
             }
 
@@ -256,14 +210,14 @@ Function Parse-PolFile
             # REG_MULTI_SZ: multiple strings, delimited by \0, terminated by \0\0 (ASCII)
             if($valueType -eq [RegType]::REG_MULTI_SZ)
             {
-                [string] $value = [System.Text.Encoding]::UNICODE.GetString($policyContents[($index)..($index+$valueLength-3)])
+                $value = [System.Text.Encoding]::UNICODE.GetString($policyContents[($index)..($index+$valueLength-3)])
                 $index += $valueLength
             }
 
             # REG_BINARY: binary values
             if($valueType -eq [RegType]::REG_BINARY)
             {
-                [byte[]] $value = $policyContentInBytes[($index)..($index+$valueLength-1)]
+                $value = $policyContents[($index)..($index+$valueLength-1)]
                 $index += $valueLength
             }
         }
@@ -271,14 +225,14 @@ Function Parse-PolFile
         # DWORD: (4 bytes) in little endian format
         if($valueType -eq [RegType]::REG_DWORD)
         {
-            $value = Convert-StringToInt -ValueString $policyContentInBytes[$index..($index+3)]
+            $value = Convert-StringToInt -ValueString $policyContents[$index..($index+3)]
             $index += 4
         }
 
         # QWORD: (8 bytes) in little endian format
         if($valueType -eq [RegType]::REG_QWORD)
         {
-            $value = Convert-StringToInt -ValueString $policyContentInBytes[$index..($index+7)]
+            $value = Convert-StringToInt -ValueString $policyContents[$index..($index+7)]
             $index += 8
         }
 
@@ -290,6 +244,8 @@ Function Parse-PolFile
         $entry = New-GPRegistryPolicy $keyName $valueName $valueType $valueLength $value
 
         $RegistryPolicies += $entry
+
+        Write-Verbose ($LocalizedData.Progress -f ($index / $policyContents.Length))
     }
 
     return $RegistryPolicies
@@ -303,57 +259,56 @@ Reads registry policies from a list of entries.
 Reads registry policies from a list of entries and returns an array of GPRegistryPolicies.
 
 .PARAMETER Division
-Specifies the division from which the registry entries will be read.
+Specifies the division from which the registry entries will be read: HKLM for Local Machine
+and HKCU for Current User.
 
 .EXAMPLE
-C:\PS> Read-RegistryPolicies -Division "LocalMachine"
+C:\PS> Read-RegistryPolicies -Division "HKLM"
 
 .EXAMPLE
-C:\PS> Read-RegistryPolicies -Division "LocalMachine" -Entries @('Software\Policies\Microsoft\Windows', 'Software\Policies\Microsoft\WindowsFirewall')
+C:\PS> Read-RegistryPolicies -Division "HKLM" -Entries @('Software\Policies\Microsoft\Windows', 'Software\Policies\Microsoft\WindowsFirewall')
 #>
 Function Read-RegistryPolicies
 {
     [OutputType([Array])]
     param (
 
-        [ValidateSet("LocalMachine", "CurrentUser", "Users")]
+        [ValidateSet("HKLM", "HKCU")]
         [string]
-        $Division = "LocalMachine",
+        $Division = "HKLM",
 		
         [string[]]
-        $Entries = $script:DefaultEntries
+        $Entries = @("Software\Policies")
     )
 
     [Array] $RegistryPolicies = @()
 
-    switch ($Division) 
-    { 
-        'LocalMachine' { $Hive = [Microsoft.Win32.Registry]::LocalMachine } 
-        'CurrentUser'  { $Hive = [Microsoft.Win32.Registry]::CurrentUser } 
-        'Users'        { $Hive = [Microsoft.Win32.Registry]::Users } 
+    if ($Division -ieq "HKLM")
+    {
+        $Hive = [Microsoft.Win32.Registry]::LocalMachine
+    }
+    else
+    {
+        $Hive = [Microsoft.Win32.Registry]::CurrentUser
     }
 
     foreach ($entry in $Entries)
     {
+        Write-Verbose "$entry"
+
         #if (Test-Path -Path $entry)
         if (IsRegistryKey -Path $entry -Hive $Hive)
         {
             # $entry is a key.
             $Key = $Hive.OpenSubKey($entry)
-
-            # Add the key itself
-            $rp = New-GPRegistryPolicy -keyName $entry
-            $RegistryPolicies += $rp
-
-            # Check default value
-            if ($Key.GetValue(''))
+            
+            if ($Key.ValueCount -eq 0)
             {
-                $info = Get-RegKeyInfo -RegKey $Key -ValueName ''
-                $rp = New-GPRegistryPolicy -keyName $entry -valueName '' -valueType $info.Type -valueLength $info.Size -valueData $info.Data
+                # Copy key only since there is no values under the key.
+                $rp = New-GPRegistryPolicy -keyName $entry
                 $RegistryPolicies += $rp
             }
-            
-            if ($Key.ValueCount -gt 0)
+            else
             {
                 # Copy values under the key
                 $ValueNames = $Key.GetValueNames()
@@ -392,35 +347,21 @@ Function Read-RegistryPolicies
             $Tokens = $entry.Split('\')
             $Property = $Tokens[-1]
             $ParentKey = $Tokens[0..($Tokens.Count-2)] -join '\'
-            $NoSuchKeyOrProperty = $false
-        
+
             if (IsRegistryKey -Path $ParentKey -Hive $Hive)
             {
                 # $entry is a property.
                 # [key;value;type;size;data]
-        
+
                 $Key = $Hive.OpenSubKey($ParentKey)
 
-                if ($Key.GetValueNames() -icontains $Property)
-                {
-                    $info = Get-RegKeyInfo -RegKey $Key -ValueName $Property
-                    $rp = [GPRegistryPolicy]::new($ParentKey, $Property, $info.Type, $info.Size, $info.Data)
-                    $RegistryPolicies += $rp
-                }
-                else
-                {
-                    $NoSuchKeyOrProperty = $true
-                }
+                $info = Get-RegKeyInfo -RegKey $Key -ValueName $Property
+                $rp = [GPRegistryPolicy]::new($ParentKey, $Property, $info.Type, $info.Size, $info.Data)
+                $RegistryPolicies += $rp
             }
             else
             {
-                $NoSuchKeyOrProperty = $true
-            }
-
-            if ( $NoSuchKeyOrProperty -and @('Continue', 'SilentlyContinue', 'Ignore' ) -inotcontains $ErrorActionPreference)
-            {
                 # $entry points to a key/property that doesn't exist.
-                $NoSuchKeyOrProperty = $true
                 Fail -ErrorMessage ($LocalizedData.InvalidPath -f $entry)
             }
         }
@@ -440,7 +381,7 @@ in a .pol file later.
 .PARAMETER RegistryPolicy
 Specifies the registry policy entry.
 #>
-Function Create-RegistrySettingsEntry
+Function Add-RegistrySettingsEntry
 {
     [OutputType([Array])]
     param (
@@ -449,6 +390,8 @@ Function Create-RegistrySettingsEntry
         [GPRegistryPolicy]
         $RegistryPolicy
     )
+
+    Write-Host "Creating key $($RP.KeyName)"
         
     # Entry format: [key;value;type;size;data]
     [Byte[]] $Entry = @()
@@ -528,7 +471,7 @@ An array of registry policy entries.
 .PARAMETER Path
 Path to a file (.pol extension)
 #>
-Function Append-RegistryPolicies
+Function Write-RegistryPolicies
 {
     param (
 		[Parameter(Mandatory = $true)]
@@ -543,7 +486,7 @@ Function Append-RegistryPolicies
         
     foreach ($rp in $RegistryPolicies)
     {
-        [Byte[]] $Entry = Create-RegistrySettingsEntry -RegistryPolicy $rp
+        [Byte[]] $Entry = Add-RegistrySettingsEntry -RegistryPolicy $rp
         $Entry | Add-Content -Path $Path -Encoding Byte
     }
 }
@@ -588,7 +531,7 @@ Creates a file and initializes it with Group Policy Registry file format signatu
 .PARAMETER Path
 Path to a file (.pol extension)
 #>
-Function Create-GPRegistryPolicyFile
+Function Add-GPRegistryPolicyFile
 {
     param (
         [Parameter(Mandatory)]
@@ -624,7 +567,7 @@ Function Get-RegKeyInfo
         $RegKey,
 
 		[Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
+        [ValidateNotNullOrEmpty()]
         [string]
         $ValueName
 
@@ -632,15 +575,9 @@ Function Get-RegKeyInfo
 
     switch ($RegKey.GetValueKind($ValueName))
     {
-        "String"       {
+        { @("String", "ExpandString") -contains $_ } {
             $Type = $RegKey.GetValueKind($ValueName)
             $Data = $RegKey.GetValue($ValueName)
-            $Size = $Data.Length
-        }
-
-        "ExpandString"       {
-            $Type = $RegKey.GetValueKind($ValueName)
-            $Data = $RegKey.GetValue($ValueName,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
             $Size = $Data.Length
         }
 
@@ -692,22 +629,13 @@ Function IsRegistryKey
         $Path,
 
         [Microsoft.Win32.RegistryKey]
-        $Hive = [Microsoft.Win32.Registry]::LocalMachine
+        $Hive = [Microsoft.Win32.RegistryKey]::LocalMachine
     )
 
     $key = $Hive.OpenSubKey($Path)
 
     if ($key)
     {
-        if ($PSVersionTable.PSEdition -ieq 'Core')
-        {
-            $key.Flush()
-            $key.Dispose()
-        }
-        else
-        {
-            $key.Close()
-        }
         return $true
     }
     else
@@ -747,4 +675,4 @@ Function Convert-StringToInt
     return $result
 }
 
-Export-ModuleMember -Function 'Parse-PolFile','Read-RegistryPolicies','Create-RegistrySettingsEntry','Create-GPRegistryPolicyFile','Append-RegistryPolicies'
+Export-ModuleMember -Function 'Read-PolFile','Read-RegistryPolicies','Add-RegistrySettingsEntry','Add-GPRegistryPolicyFile','Write-RegistryPolicies' 
