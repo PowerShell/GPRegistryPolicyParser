@@ -73,7 +73,7 @@ function GetRegTypeFromString
 Function New-GPRegistryPolicy
 {
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
         [string]
         $keyName,
@@ -123,7 +123,7 @@ Reads a .pol file, parses it and returns an array of Group Policy registry setti
 Specifies the path to the .pol file.
 
 .EXAMPLE
-C:\PS> Parse-PolFile -Path "C:\Registry.pol"
+C:\PS> Read-PolFile -Path "C:\Registry.pol"
 #>
 Function Read-PolFile
 {
@@ -175,6 +175,7 @@ Function Read-PolFile
         $semicolon = $policyContents.IndexOf(";", $index)
         Assert ($semicolon -ge 0) "Failed to locate the semicolon after value name."
         $valueName = [System.Text.Encoding]::UNICODE.GetString($policyContents[($index)..($semicolon-3)]) # -3 to exclude the null termination and ';' characters
+        
         $index = $semicolon + 2
 
         # Next DWORD will continue until the ;
@@ -391,7 +392,7 @@ Function Add-RegistrySettingsEntry
         $RegistryPolicy
     )
 
-    Write-Host "Creating key $($RP.KeyName)"
+    Write-Verbose "Creating key $($RP.KeyName)"
         
     # Entry format: [key;value;type;size;data]
     [Byte[]] $Entry = @()
