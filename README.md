@@ -1,11 +1,26 @@
 # Registry Policy Parser Cmdlets
 
-These cmdlets will allow you to work with .POL files, which contain the registry keys enacted by Group Policy. The primary intent of these cmdlets is to enable enforcing security policy settings on Nano Server, but this method will also work on Windows Server 2016. These cmdlets are used internally by *GPRegistryModule*.
+**Future updates to this project will be implemented in the [GPRegistryModule](https://github.com/PowerShell/GPRegistryPolicy).**
+Version 0.2 will continue to be available in this GitHub project
+and in the [PowerShellGallery](https://www.powershellgallery.com/packages/GPRegistryPolicyParser/0.2).
+This will ensure any projects taking a dependency on GPRegistryParser 0.2
+will not be broken.
+Any updates to GPRegistryParser will be documented in the GPRegistryModule
+release notes,
+but none are expected.
+
+These cmdlets will allow you to work with .POL files,
+which contain the registry keys enacted by Group Policy.
+The primary intent of these cmdlets is to
+enable enforcing security policy settings on Nano Server,
+but this method will also work on Windows Server 2016.
+These cmdlets are used internally by *GPRegistryModule*.
 
 ---
 
 ## Parse-PolFile
-Reads a .pol file containing group policy registry entries and returns an array of objects each containing a registry setting.
+Reads a .pol file containing group policy registry entries
+and returns an array of objects each containing a registry setting.
 
 ### Syntax
 ```
@@ -48,8 +63,8 @@ C:\PS> $RegistrySettings = Read-RegistryPolicies -Divistion 'LocalMachine' -Entr
 ---
 
 ## Create-RegistrySettingsEntry
-Creates a .pol file entry byte array from a GPRegistryPolicy instance. This entry can be written
-in a .pol file later.
+Creates a .pol file entry byte array from a GPRegistryPolicy instance.
+This entry can be written in a .pol file later.
 
 ### Syntax
 ```
@@ -68,7 +83,8 @@ C:\PS> $Entry = Create-RegistrySettingsEntry -RegistryPolicy $GPRegistryPolicyIn
 ---
 
 ## Append-RegistryPolicies
-Appends an array of registry policy entries to a file. The file must alreay have a valid header.
+Appends an array of registry policy entries to a file.
+The file must already have a valid header.
 
 ### Syntax
 ```
