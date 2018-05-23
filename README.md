@@ -18,22 +18,22 @@ These cmdlets are used internally by *GPRegistryModule*.
 
 ---
 
-## Parse-PolFile
+## Read-PolFile
 Reads a .pol file containing group policy registry entries
 and returns an array of objects each containing a registry setting.
 
 ### Syntax
 ```
-Parse-PolFile [-Path <string>]  [<CommonParameters>]
+Read-PolFile [-Path <string>]  [<CommonParameters>]
 ```
 
-| Parameter Name | Description                                                                            | 
+| Parameter Name | Description                                                                            |
 | ---            | ---                                                                                    |
 | Path           | Specifies the path to the .pol file to be imported.                                    |
 
 ### Example
 ```
-C:\PS> $RegistrySettings = Parse-PolFile -Path "C:\Registry.pol"
+C:\PS> $RegistrySettings = Read-PolFile -Path "C:\Registry.pol"
 ```
 
 ---
@@ -46,7 +46,7 @@ Reads given registry entries and returns an array of registry settings.
 Read-RegistryPolicies [-Division <string>] [-Entries <string[]>]  [<CommonParameters>]
 ```
 
-| Parameter Name | Description                                                                                          | 
+| Parameter Name | Description                                                                                          |
 | ---            | ---                                                                                                  |
 | Division       | Specifies the target registry division (LocalMachine, CurrentUser or Users)                          |
 | Entries        | Specifies the list of registry keys to be exported. The default value is set to 'Software\Policies'. |
@@ -62,43 +62,43 @@ C:\PS> $RegistrySettings = Read-RegistryPolicies -Divistion 'LocalMachine' -Entr
 
 ---
 
-## Create-RegistrySettingsEntry
+## New-RegistrySettingsEntry
 Creates a .pol file entry byte array from a GPRegistryPolicy instance.
 This entry can be written in a .pol file later.
 
 ### Syntax
 ```
-$RegistrySettings = Create-RegistrySettingsEntry [-RegistryPolicy <GPRegistryPolicy[]>
+$RegistrySettings = New-RegistrySettingsEntry [-RegistryPolicy <GPRegistryPolicy[]>
 ```
 
-| Parameter Name | Description                                                                                          | 
+| Parameter Name | Description                                                                                          |
 | ---            | ---                                                                                                  |
 | RegistryPolicy | An instance of internal type 'GPRegistryPolicy'                                                      |
 
 ### Example
 ```
-C:\PS> $Entry = Create-RegistrySettingsEntry -RegistryPolicy $GPRegistryPolicyInstance
+C:\PS> $Entry = New-RegistrySettingsEntry -RegistryPolicy $GPRegistryPolicyInstance
 ```
 
 ---
 
-## Append-RegistryPolicies
+## Add-RegistryPolicies
 Appends an array of registry policy entries to a file.
 The file must already have a valid header.
 
 ### Syntax
 ```
-Append-RegistryPolicies [-RegistryPolicies <GPRegistryPolicy[]>] [-Path <string>]
+Add-RegistryPolicies [-RegistryPolicies <GPRegistryPolicy[]>] [-Path <string>]
 ```
 
-| Parameter Name   | Description                                                                                          | 
+| Parameter Name   | Description                                                                                          |
 | ---              | ---                                                                                                  |
 | RegistryPolicies | An array of instance of internal type 'GPRegistryPolicy'                                             |
 | Path             | Specifies the path to the .pol file to be imported.                                                  |
 
 ### Example
 ```
-C:\PS> Append-RegistryPolicies -RegistryPolicies $RegistryPoliciesInput -Path "C:\Registry.pol"
+C:\PS> Add-RegistryPolicies -RegistryPolicies $RegistryPoliciesInput -Path "C:\Registry.pol"
 ```
 
 ---

@@ -50,5 +50,5 @@ PrivateData = @{
 
 } # End of PrivateData hashtable
 
-FunctionsToExport = @('Parse-PolFile','Read-RegistryPolicies','Create-RegistrySettingsEntry','Create-GPRegistryPolicyFile','Append-RegistryPolicies')
+FunctionsToExport = @('New-GPRegistryPolicy', 'Read-PolFile', 'Read-RegistryPolicies', 'New-RegistrySettingsEntry', 'New-GPRegistryPolicyFile', 'Add-RegistryPolicies')
 }
