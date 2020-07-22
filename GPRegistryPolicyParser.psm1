@@ -184,7 +184,7 @@ Function Read-PolFile
     $index = 0
 
     [string] $policyContents = Get-Content $Path -Raw
-    if ( $PSVersionTable.PSVersion.Major -eq "5")
+    if ( $PSVersionTable.PSVersion.Major -le "5")
     {
         [byte[]] $policyContentInBytes = Get-Content $Path -Raw -Encoding Byte
     }
