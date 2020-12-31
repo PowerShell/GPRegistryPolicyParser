@@ -173,6 +173,7 @@ C:\PS> Read-PolFile -Path "C:\Registry.pol"
 #>
 Function Read-PolFile
 {
+    [Alias("Parse-PolFile")]    
     [OutputType([Array])]
     param (
         [Parameter(Mandatory=$true,Position=0)]
@@ -450,6 +451,7 @@ Specifies the registry policy entry.
 Function New-RegistrySettingsEntry
 {
     [OutputType([Array])]
+    [Alias("Create-RegistrySettingsEntry")]
     param (
 		[Parameter(Mandatory = $true)]
         [alias("RP")]
@@ -537,6 +539,7 @@ Path to a file (.pol extension)
 #>
 Function Add-RegistryPolicies
 {
+    [Alias("Append-RegistryPolicies")]
     param (
 		[Parameter(Mandatory = $true)]
         [GPRegistryPolicy[]]
@@ -597,6 +600,7 @@ Path to a file (.pol extension)
 #>
 Function New-GPRegistryPolicyFile
 {
+    [Alias("Create-GPRegistryPolicyFile")]
     param (
         [Parameter(Mandatory)]
         $Path
@@ -755,3 +759,4 @@ Function Convert-StringToInt
 }
 
 Export-ModuleMember -Function 'Read-PolFile','Read-RegistryPolicies','New-RegistrySettingsEntry','New-GPRegistryPolicyFile','Add-RegistryPolicies'
+Export-ModuleMember -Alias 'Parse-PolFile','Create-RegistrySettingsEntry','Append-RegistryPolicies','Create-GPRegistryPolicyFile'
