@@ -191,7 +191,7 @@ Function Read-PolFile
     }
     elseif ($PSVersionTable.PSVersion.Major -gt "5")
     {
-        [byte[]] $policyContentInBytes= get-content  $path  -AsByteStream -Raw
+        [byte[]] $policyContentInBytes= get-content $path -AsByteStream -Raw
     }
 
     # 4 bytes are the signature PReg
