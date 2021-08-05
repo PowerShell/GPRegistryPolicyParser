@@ -6,7 +6,7 @@ RootModule = 'GPRegistryPolicyParser.psm1'
 #DscResourcesToExport = ''
 
 # Version number of this module.
-ModuleVersion = '0.2'
+ModuleVersion = '1.0.0'
 
 # ID used to uniquely identify this module
 GUID = '136973e7-64da-494b-bf2d-38d4564bb8f5'
@@ -34,6 +34,8 @@ PrivateData = @{
 
     PSData = @{
 
+        # Prerelease = 'prerelease'
+
         # Tags applied to this module. These help with module discovery in online galleries.
         Tags = @('GroupPolicy', 'DSC', 'DesiredStateConfiguration')
 
@@ -50,5 +52,6 @@ PrivateData = @{
 
 } # End of PrivateData hashtable
 
-FunctionsToExport = @('Parse-PolFile','Read-RegistryPolicies','Create-RegistrySettingsEntry','Create-GPRegistryPolicyFile','Append-RegistryPolicies')
+FunctionsToExport = @('Read-PolFile','Read-RegistryPolicies','New-RegistrySettingsEntry','New-GPRegistryPolicyFile','Add-RegistryPolicies')
+AliasesToExport =@('Parse-PolFile','Create-RegistrySettingsEntry','Append-RegistryPolicies','Create-GPRegistryPolicyFile')
 }

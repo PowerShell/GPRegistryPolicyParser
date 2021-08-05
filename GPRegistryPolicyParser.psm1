@@ -123,25 +123,25 @@ Function New-GPRegistryPolicy
         [ValidateNotNullOrEmpty()]
         [string]
         $keyName,
-        
+
         [Parameter(Position=1)]
         [string]
         $valueName = $null,
-        
+
         [Parameter(Position=2)]
         [RegType]
         $valueType = [RegType]::REG_NONE,
-        
+
         [Parameter(Position=3)]
         [string]
         $valueLength = $null,
-        
+
         [Parameter(Position=4)]
         [object]
         $valueData = $null
         )
 
-    $Policy = [GPRegistryPolicy]::new($keyName, $valueName, $valueType, $valueLength, $valueData)
+$Policy = [GPRegistryPolicy]::new($keyName, $valueName, $valueType, $valueLength, $valueData)
 
     return $Policy;
 }
@@ -158,7 +158,7 @@ Function Get-RegType
     return [GPRegistryPolicy]::GetRegTypeFromString($Type)
 }
 
-<# 
+<#
 .SYNOPSIS
 Reads and parses a .pol file.
 
@@ -169,10 +169,11 @@ Reads a .pol file, parses it and returns an array of Group Policy registry setti
 Specifies the path to the .pol file.
 
 .EXAMPLE
-C:\PS> Parse-PolFile -Path "C:\Registry.pol"
+C:\PS> Read-PolFile -Path "C:\Registry.pol"
 #>
-Function Parse-PolFile
+Function Read-PolFile
 {
+    [Alias("Parse-PolFile")]    
     [OutputType([Array])]
     param (
         [Parameter(Mandatory=$true,Position=0)]
@@ -184,7 +185,14 @@ Function Parse-PolFile
     $index = 0
 
     [string] $policyContents = Get-Content $Path -Raw
-    [byte[]] $policyContentInBytes = Get-Content $Path -Raw -Encoding Byte
+    if ( $PSVersionTable.PSVersion.Major -le "5")
+    {
+        [byte[]] $policyContentInBytes = Get-Content $Path -Raw -Encoding Byte
+    }
+    elseif ($PSVersionTable.PSVersion.Major -gt "5")
+    {
+        [byte[]] $policyContentInBytes= get-content $path -AsByteStream -Raw
+    }
 
     # 4 bytes are the signature PReg
     $signature = [System.Text.Encoding]::ASCII.GetString($policyContents[0..3])
@@ -319,7 +327,7 @@ Function Read-RegistryPolicies
         [ValidateSet("LocalMachine", "CurrentUser", "Users")]
         [string]
         $Division = "LocalMachine",
-		
+
         [string[]]
         $Entries = $script:DefaultEntries
     )
@@ -327,9 +335,9 @@ Function Read-RegistryPolicies
     [Array] $RegistryPolicies = @()
 
     switch ($Division) 
-    { 
-        'LocalMachine' { $Hive = [Microsoft.Win32.Registry]::LocalMachine } 
-        'CurrentUser'  { $Hive = [Microsoft.Win32.Registry]::CurrentUser } 
+    {
+        'LocalMachine' { $Hive = [Microsoft.Win32.Registry]::LocalMachine }
+        'CurrentUser'  { $Hive = [Microsoft.Win32.Registry]::CurrentUser }
         'Users'        { $Hive = [Microsoft.Win32.Registry]::Users } 
     }
 
@@ -393,12 +401,12 @@ Function Read-RegistryPolicies
             $Property = $Tokens[-1]
             $ParentKey = $Tokens[0..($Tokens.Count-2)] -join '\'
             $NoSuchKeyOrProperty = $false
-        
+
             if (IsRegistryKey -Path $ParentKey -Hive $Hive)
             {
                 # $entry is a property.
                 # [key;value;type;size;data]
-        
+
                 $Key = $Hive.OpenSubKey($ParentKey)
 
                 if ($Key.GetValueNames() -icontains $Property)
@@ -429,7 +437,7 @@ Function Read-RegistryPolicies
     return $RegistryPolicies
 }
 
-<# 
+<#
 .SYNOPSIS
 Creates a .pol file entry byte array from a GPRegistryPolicy instance.
 
@@ -440,9 +448,10 @@ in a .pol file later.
 .PARAMETER RegistryPolicy
 Specifies the registry policy entry.
 #>
-Function Create-RegistrySettingsEntry
+Function New-RegistrySettingsEntry
 {
     [OutputType([Array])]
+    [Alias("Create-RegistrySettingsEntry")]
     param (
 		[Parameter(Mandatory = $true)]
         [alias("RP")]
@@ -515,7 +524,7 @@ Function Create-RegistrySettingsEntry
     return $Entry
 }
 
-<# 
+<#
 .SYNOPSIS
 Appends an array of registry policy entries to a file.
 
@@ -528,8 +537,9 @@ An array of registry policy entries.
 .PARAMETER Path
 Path to a file (.pol extension)
 #>
-Function Append-RegistryPolicies
+Function Add-RegistryPolicies
 {
+    [Alias("Append-RegistryPolicies")]
     param (
 		[Parameter(Mandatory = $true)]
         [GPRegistryPolicy[]]
@@ -543,7 +553,7 @@ Function Append-RegistryPolicies
         
     foreach ($rp in $RegistryPolicies)
     {
-        [Byte[]] $Entry = Create-RegistrySettingsEntry -RegistryPolicy $rp
+        [Byte[]] $Entry =New-RegistrySettingsEntry -RegistryPolicy $rp
         $Entry | Add-Content -Path $Path -Encoding Byte
     }
 }
@@ -560,7 +570,7 @@ Function Assert
         $ErrorMessage
     )
 
-    if (!$Condition) 
+    if (!$Condition)
     {
         Fail -ErrorMessage $ErrorMessage;
     }
@@ -574,11 +584,11 @@ Function Fail
         [string]
         $ErrorMessage
     )
-  
+
     throw $ErrorMessage
 }
 
-<# 
+<#
 .SYNOPSIS
 Creates a file and initializes it with Group Policy Registry file format signature.
 
@@ -588,8 +598,9 @@ Creates a file and initializes it with Group Policy Registry file format signatu
 .PARAMETER Path
 Path to a file (.pol extension)
 #>
-Function Create-GPRegistryPolicyFile
+Function New-GPRegistryPolicyFile
 {
+    [Alias("Create-GPRegistryPolicyFile")]
     param (
         [Parameter(Mandatory)]
         $Path
@@ -747,4 +758,5 @@ Function Convert-StringToInt
     return $result
 }
 
-Export-ModuleMember -Function 'Parse-PolFile','Read-RegistryPolicies','Create-RegistrySettingsEntry','Create-GPRegistryPolicyFile','Append-RegistryPolicies'
+Export-ModuleMember -Function 'Read-PolFile','Read-RegistryPolicies','New-RegistrySettingsEntry','New-GPRegistryPolicyFile','Add-RegistryPolicies'
+Export-ModuleMember -Alias 'Parse-PolFile','Create-RegistrySettingsEntry','Append-RegistryPolicies','Create-GPRegistryPolicyFile'
