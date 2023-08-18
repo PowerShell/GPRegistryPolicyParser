@@ -1,4 +1,4 @@
-﻿###########################################################
+###########################################################
 #
 #  Group Policy - Registry Policy parser module
 #
@@ -22,6 +22,14 @@ data LocalizedData
 }
 
 Import-LocalizedData  LocalizedData -filename GPRegistryPolicyParser.Strings.psd1
+# Add compatibility for Powershell Core which does not support 'encoding byte' via splatting
+if ( $PSVersionTable.PSVersion.Major -le "5")
+    {
+        $byteParam = @{Encoding = "Byte"}
+    } elseif ($PSVersionTable.PSVersion.Major -gt "5")
+    {
+        $byteParam = @{AsByteStream = $True}
+}
 
 $script:REGFILE_SIGNATURE = 0x67655250 # PRef
 $script:REGISTRY_FILE_VERSION = 0x00000001 #Initially defined as 1, then incremented each time the file format is changed.
@@ -185,14 +193,7 @@ Function Read-PolFile
     $index = 0
 
     [string] $policyContents = Get-Content $Path -Raw
-    if ( $PSVersionTable.PSVersion.Major -le "5")
-    {
-        [byte[]] $policyContentInBytes = Get-Content $Path -Raw -Encoding Byte
-    }
-    elseif ($PSVersionTable.PSVersion.Major -gt "5")
-    {
-        [byte[]] $policyContentInBytes= get-content $path -AsByteStream -Raw
-    }
+    [byte[]] $policyContentInBytes = Get-Content $Path -Raw @byteParam
 
     # 4 bytes are the signature PReg
     $signature = [System.Text.Encoding]::ASCII.GetString($policyContents[0..3])
@@ -554,7 +555,7 @@ Function Add-RegistryPolicies
     foreach ($rp in $RegistryPolicies)
     {
         [Byte[]] $Entry =New-RegistrySettingsEntry -RegistryPolicy $rp
-        $Entry | Add-Content -Path $Path -Encoding Byte
+        $Entry | Add-Content -Path $Path @byteParam
     }
 }
 
@@ -610,8 +611,8 @@ Function New-GPRegistryPolicyFile
 
     New-Item -Path $Path -Force -Verbose -ErrorAction Stop | Out-Null
 
-    [System.BitConverter]::GetBytes($script:REGFILE_SIGNATURE) | Add-Content -Path $Path -Encoding Byte
-    [System.BitConverter]::GetBytes($script:REGISTRY_FILE_VERSION) | Add-Content -Path $Path -Encoding Byte
+    [System.BitConverter]::GetBytes($script:REGFILE_SIGNATURE) | Add-Content -Path $Path @byteParam
+    [System.BitConverter]::GetBytes($script:REGISTRY_FILE_VERSION) | Add-Content -Path $Path @byteParam
 }
 
 <# 
